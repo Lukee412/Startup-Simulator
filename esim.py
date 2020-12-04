@@ -64,12 +64,10 @@ class StartUpSim:
         #Reset all game parameters (days, cash)
         self.canvas.destroy()
         self.gameover = False
-        print(random())
-        print(random())
-        self.databreachDate = int(100 + random() * 250)
-        self.downturnDate = int(100 + random() * 250)
+        self.databreachDate = int(120 + random() * 200)
+        self.downturnDate = int(120 + random() * 200)
         self.lawsuitDate = int(self.databreachDate + 20 + random() * 50)
-        self.viralDate = int(100 + random() * 100)
+        self.viralDate = int(120 + random() * 100)
         self.currentDay = 0
         self.cash = startingCash
         self.stage = "Ideation"
@@ -171,7 +169,6 @@ class StartUpSim:
             self.upgradeButton['state'] = "disabled"
             self.upgradeLabel = tk.Label(self.scoreFrame, text="Too early to change offices.", font='Helvetica 10')
             self.upgradeLabel.grid(row=5,column=2)
-        print("Got to this part")
         load = Image.open(officeTypes[self.currentOffice])
         load = load.resize((600, 500), Image.ANTIALIAS)
         icon = ImageTk.PhotoImage(load)
@@ -250,7 +247,7 @@ class StartUpSim:
         self.scoreLabel.pack()
 
     def mainloop(self):
-        print("entered main loop")
+        #print("entered main loop")
         while True:
             self.window.update()
             if self.begin:
@@ -329,7 +326,7 @@ class StartUpSim:
         elif self.stage == "Beta":
             costs += self.totalUsers * .25
         elif self.stage == "Full Release":
-            costs += self.totalUsers * .3
+            costs += self.totalUsers * .275
         #Account for downturn
         if self.inDownturn:
             costs += costs * .1
@@ -363,14 +360,14 @@ class StartUpSim:
         if self.isReleased:
             # Calculate based off of game quality, press, randomness
             userLoss = max(self.totalUsers * .1 * (random()) * (1 - (self.appQuality / 150)),0)
-            newUsers = 5 + self.appPublicity * self.totalUsers * .003 * random() # can be negative!
-            print(userLoss)
-            print(newUsers)
+            newUsers = 5 + (self.appPublicity+10) * self.totalUsers * .003 * random() # can be negative!
+            #print(userLoss)
+            #print(newUsers)
             if self.inDownturn:
                 userLoss = userLoss * 1.25
                 newUsers = newUsers * .5
             if self.goingViral:
-                newUsers = newUsers * 4 + 50
+                newUsers = newUsers * 4 + 20
             # Add to total user count
             self.totalUsers -= userLoss 
             self.totalUsers += newUsers
@@ -534,9 +531,9 @@ class StartUpSim:
     def raiseMoney(self):
         
         valuation1 = max(self.dailyRevenue[self.currentDay-1] * 200 * 6,1000000)
-        stake1 = min((100*round(fundingStages[self.fundingRound]/valuation1,3)),99)
+        stake1 = max(min((100*round(fundingStages[self.fundingRound]/valuation1,3)),97),2)
         valuation2 =  max(self.dailyRevenue[self.currentDay-1] * 200 * 8,1250000)
-        stake2 = min(100*round(fundingStages[self.fundingRound]*2/valuation2,3),99.5)
+        stake2 = max(min(100*round(fundingStages[self.fundingRound]*2/valuation2,3),99.5),3)
         
         def option1():
             self.fundraising = False
@@ -803,7 +800,7 @@ class StartUpSim:
     def intro(self): # Intro
         # Let's create a alert box with 'messagebox' function
         tk.messagebox.showinfo("Introduction", """      Welcome to the COMM 4680 Startup Simulator! \n \n
-            The goal of this game is to launch, grow, and successfully exit a business before your run out of cash.
+            The goal of this game is to launch, grow, and successfully exit a business before you run out of cash.
         \nYou’ll make important decisions along the way that will affect your chances of success; the hidden effects of these decisions are based upon in-class learnings, but there is no one correct way to play.
         \nYour final score will depend on how much equity you own upon exiting the business, as well as the total value of your business.
         \nI hope you’ll play through multiple times to see how different decisions might play out, as you try to build a software unicorn! """)
@@ -990,6 +987,7 @@ The app is highly dependent on network effects, so if Microflop beats you to the
 
     def goViral(self):
         def option1():
+            self.goingViral = True
             self.endViralDate = self.viralDate + viralLength
             close()
         def close():
@@ -1038,7 +1036,7 @@ The app is highly dependent on network effects, so if Microflop beats you to the
         # Get the function from switcher dictionary
         event = switcher.get(argument, lambda: "")
         # Execute the function
-        print(event())
+        event()
     
     
     # ------------------------------------------------------------------
@@ -1344,10 +1342,12 @@ The app is highly dependent on network effects, so if Microflop beats you to the
         optionFrame = tk.Frame(root)
         optionFrame.pack(side="bottom")
         if self.customerHelped:
-            promptText = """Remember that customer you helped out last week? He just sent out a blog post with effusive praise for your incredible customer support. Good call!"""
+            promptText = """Remember that customer you helped out last week? He just sent out a blog post with 
+            \neffusive praise for your incredible customer support. Good call!"""
             self.appPublicity += 10
         else:
-            promptText = """Bad News -- Turns out, the customer that you ignored last week writes for TechCrunch, and he just published a scathing artical about """ + self.appName + """. That's gonna hurt business."""
+            promptText = """Bad News -- Turns out, the customer that you ignored last week writes for TechCrunch, 
+            \nand he just published a scathing artical about """ + self.appName + """. That's gonna hurt business."""
             self.appPublicity -= 20
         b_prompt = tkinter.Label(promptFrame, text=promptText)
         b_prompt.pack()
