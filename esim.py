@@ -8,12 +8,9 @@ import pandas as pd
 from PIL import ImageTk,Image
 import matplotlib
 matplotlib.use("TkAgg")
-#from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-#import PyQt4
-#from PyQt4 import QtGui    # or PySide
 
 # Define useful parameters
 DELAY = 2000
@@ -66,6 +63,7 @@ class StartUpSim:
         self.gameover = False
         self.databreachDate = int(120 + random() * 200)
         self.downturnDate = int(120 + random() * 200)
+        self.pressureDate = int(120 + random() * 200)
         self.lawsuitDate = int(self.databreachDate + 20 + random() * 50)
         self.viralDate = int(120 + random() * 100)
         self.currentDay = 0
@@ -78,7 +76,8 @@ class StartUpSim:
         self.totalUsers = 0
         self.numCofounders = 0
         self.numEmployees = 0
-        self.microflopRelease = 250
+        self.microflopRelease = 200
+        self.microflopReleaseOriginal = 200
         self.dailyRevenue = [0]*730
         self.dailyCosts = [0]*730
         self.dailyUsers = [0]*730
@@ -170,7 +169,7 @@ class StartUpSim:
             self.upgradeLabel = tk.Label(self.scoreFrame, text="Too early to change offices.", font='Helvetica 10')
             self.upgradeLabel.grid(row=5,column=2)
         load = Image.open(officeTypes[self.currentOffice])
-        load = load.resize((600, 500), Image.ANTIALIAS)
+        load = load.resize((600, 400), Image.ANTIALIAS)
         icon = ImageTk.PhotoImage(load)
         self.officeLabel = tk.Label(self.graphicFrame, image = icon)
         self.officeLabel.image = icon
@@ -367,7 +366,18 @@ class StartUpSim:
                 userLoss = userLoss * 1.25
                 newUsers = newUsers * .5
             if self.goingViral:
-                newUsers = newUsers * 4 + 20
+                newUsers = newUsers * 3 + 20
+
+            #User Growth Balancing
+            if self.totalUsers > 10000:
+                newUsers = newUsers / 2
+            elif self.totalUsers > 100000:
+                newUsers = newUsers / 3
+            elif self.totalUsers > 1000000:
+                newUsers = newUsers / 4
+            elif self.totalUsers > 10000000:
+                newUsers = newUsers / 10
+            
             # Add to total user count
             self.totalUsers -= userLoss 
             self.totalUsers += newUsers
@@ -384,9 +394,9 @@ class StartUpSim:
             userOutput = userOutput / 4
         founderMultiplier = 1
         if self.numCofounders == 1:
-            founderMultiplier = 2.5
+            founderMultiplier = 2.25
         elif self.numCofounders == 2:
-            founderMultiplier = 3.5
+            founderMultiplier = 3
         employeeOutput = self.numEmployees * 3
         officeBoost = officeProductivity[self.currentOffice]
         self.progress += userOutput * founderMultiplier + employeeOutput * (founderMultiplier/3) + officeBoost
@@ -465,7 +475,7 @@ class StartUpSim:
             print("This shouldn't have happened!") 
         self.officeLabel.pack_forget()
         load = Image.open(officeTypes[self.currentOffice])
-        load = load.resize((600, 500), Image.ANTIALIAS)
+        load = load.resize((600, 400), Image.ANTIALIAS)
         icon = ImageTk.PhotoImage(load)
         self.officeLabel = tk.Label(self.graphicFrame, image = icon)
         self.officeLabel.image = icon
@@ -614,6 +624,10 @@ class StartUpSim:
 
     
     def display_gameover(self, reason):
+        #Save highscore
+        highscores = open("highscores.txt", "a")
+        highscores.write(self.appName, ": Bankrupt at Day ", self.currentDay)
+        highscores.close()
         #Show daily graph!
         self.graphicFrame.destroy()
         self.scoreFrame.destroy()
@@ -680,15 +694,18 @@ class StartUpSim:
         self.playAgain.pack()
     
     def display_victory(self, reason, networth):
+        #Save high score:
+        highscores = open("highscores.txt", "a")
+        highscores.write(self.appName, ": ", reason, " at Net Worth: $", networth)
+        highscores.close()
+        
         self.graphicFrame.destroy()
         self.scoreFrame.destroy()
-
 
         windowwidth = 700
         windowheight = 300
         self.canvas = Canvas(self.window, width=windowwidth, height=windowheight)
-        self.canvas.pack()
-        
+        self.canvas.pack()   
 
         self.canvas.create_text(
             windowwidth / 2,
@@ -811,7 +828,7 @@ class StartUpSim:
         \nAll together, you can put together $10,000 in savings to fund your project. You’ll maintain your day job ($215 / day) while you try to come up with an idea.""")
     
     def microflopWarning(self): #Time to name your app
-        tk.messagebox.showinfo("Microflop Competition", """You’ve just received a tip from a buddy at Microflop -- Apparently, they’re putting together an incredibly similar app. They only have a small team on the project, so it is currently expected to launch in 200 days.
+        tk.messagebox.showinfo("Microflop Competition", """You’ve just received a tip from a buddy at Microflop -- Apparently, they’re putting together an incredibly similar app. They only have a small team on the project, so it is currently expected to launch in 150 days.
 The app is highly dependent on network effects, so if Microflop beats you to the market, your app will almost certainly flop.
         """)
 
@@ -1009,6 +1026,27 @@ The app is highly dependent on network effects, so if Microflop beats you to the
     def endViral(self):
         self.goingViral = False
 
+    def microflopReleased(self):
+        def option1():
+            self.goingViral = True
+            self.endViralDate = self.viralDate + viralLength
+            close()
+        def close():
+            root.quit()
+            root.destroy()
+        root = tkinter.Tk()
+        promptFrame = tk.Frame(root)
+        promptFrame.pack()
+        optionFrame = tk.Frame(root)
+        optionFrame.pack(side="bottom")
+        viralLength = 5 + random() * 20
+        lawsuitSize = round(self.totalUsers * (5 + random()*10))
+        b_prompt = tkinter.Label(promptFrame, text="""Microflop's product has released! You beat them to market, but they still stole """ + lostCustomers + r"""% of your customer base.""" )
+        b_prompt.pack()
+        b_1 = tk.Button(optionFrame, text='Acknowledge',command=option1)
+        b_1.pack()
+        root.mainloop()
+
     def get_dayEvent(self,argument): #Day-based
         switcher = {
             1: self.intro,
@@ -1025,7 +1063,8 @@ The app is highly dependent on network effects, so if Microflop beats you to the
             self.viralDate: self.goViral,
             self.recoveryDate: self.recovery,
             self.stopViralDate: self.endViral,
-            self.customerFollowupDate: self.customerFollowup
+            self.customerFollowupDate: self.customerFollowup,
+            self.microflopReleased: self.microflopReleaseOriginal
             #7: seven,
             #8: eight,
             #9: nine,
